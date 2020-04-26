@@ -55,3 +55,7 @@ module.exports = {
 - hash: 是否给生成的 js 文件添加版本标示，默认是 `true`；
 - pathOnly: 是否只通过路径插入 js 文件，而不用 template，默认是 `false`；
 - paths:  想插入到 index.html 页面上的 js 文件的路径，默认是空数组。
+
+## demo
+
+> TODO
