@@ -1,18 +1,30 @@
 {
   "name": "@vinsea/extra-jsfile-webpack-plugin",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Generate JS to mount to 'window'",
-  "author": "Vinsea Lee (https://www.vinxea.com)",
+  "author": "Vinsea Lee",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
+  "keywords": [
+    "webpack plugin",
+    "insert js",
+    "insert jsfile"
+  ],
   "license": "MIT",
   "files": [
     "index.js"
   ],
   "peerDependencies": {
     "html-webpack-plugin": "^2.30.1"
+  },
+  "bugs": {
+    "url": "https://github.com/Vinsea/extra-jsfile-webpack-plugin/issues"
+  },
+  "homepage": "https://github.com/Vinsea/extra-jsfile-webpack-plugin",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Vinsea/extra-jsfile-webpack-plugin.git"
   }
 }
