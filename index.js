@@ -66,7 +66,7 @@ class ExtraJsFileWebpackPlugin {
                 if (this.options.pathOnly) {
                     return;
                 }
-                this.generateVersionFile(pathOutputDir, htmlPluginData, callback, Boolean(compilation.hooks));
+                this.generateVersionFile(pathOutputDir, htmlPluginData, callback, !compilation.hooks);
             });
         });
     }
