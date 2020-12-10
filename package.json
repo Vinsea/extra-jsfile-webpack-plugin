@@ -5,7 +5,8 @@
   "author": "Vinsea Lee",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "log": "conventional-changelog -p angular -i CHANGELOG.md -s",
+    "version": "npm run log && git add CHANGELOG.md"
   },
   "keywords": [
     "webpack plugin",
@@ -26,5 +27,8 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Vinsea/extra-jsfile-webpack-plugin.git"
+  },
+  "devDependencies": {
+    "conventional-changelog-cli": "^2.1.1"
   }
 }
