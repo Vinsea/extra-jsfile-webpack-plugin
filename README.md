@@ -1,20 +1,20 @@
 <div align="center">
   <a href="https://github.com/webpack/webpack">
-    <img width="200" height="200"
-      src="https://webpack.js.org/assets/icon-square-big.svg">
+    <img width="200" height="200" src="https://webpack.js.org/assets/icon-square-big.svg">
   </a>
 </div>
 
-![npm][npm-url]
+![NPM version][https://img.shields.io/npm/v/@vinsea/extra-jsfile-webpack-plugin.svg?style=flat)](https://npmjs.org/package/@vinsea/extra-jsfile-webpack-plugin)]
 
-<h1 align="center">Extra-Jsfile-Webpack-Plugin</h1>
+<h2 align="center">Extra-Jsfile-Webpack-Plugin</h2>
 
 - 打包时候可以将的 `js` 文件加入到 [html-webpack-plugin](https://www.npmjs.com/package/html-webpack-plugin/v/3.2.0) 的资源队列中。 （会插入到 index.html）
 - 或者在导出的`index.js`中加入特定的 `js` 脚本
 
-# 示例
+## 示例
+[查看详细参数](#选项)
 
-## 默认情况
+### 默认情况
 ```js
 new ExtraJsfileWebpackPlugin()
 ```
@@ -31,7 +31,7 @@ new ExtraJsfileWebpackPlugin()
 > }
 ```
 
-## 添加自定义js脚本
+### 添加自定义js脚本
 ```js
 new ExtraJsfileWebpackPlugin({
   template: "window.__YOUR_KEY_NAME__='ExtraJsfileWebpackPlugin'"
@@ -44,7 +44,7 @@ new ExtraJsfileWebpackPlugin({
 > "ExtraJsfileWebpackPlugin"
 ```
 
-## 往html中添加指定js文件
+### 往html中添加指定js文件
 比如项目里有一个`extra-js-file.js`
 ```js
 new ExtraJsfileWebpackPlugin({ 
@@ -61,17 +61,17 @@ new ExtraJsfileWebpackPlugin({
 </body>
 ```
 
-# 用法
+## 用法
 
 > ℹ️ 依赖于 [html-webpack-plugin 3.* 以下版本](https://www.npmjs.com/package/html-webpack-plugin/v/3.2.0)，后续会兼容最新版本
 
-## 安装
+### 安装
 
 ```bash
 npm install @vinsea/extra-jsfile-webpack-plugin --save-dev
 ```
 
-## 正常用webpack
+### 正常用webpack
 `webpack.config.js`
 ```js
 const ExtraJsfileWebpackPlugin = require('@vinsea/extra-jsfile-webpack-plugin');
@@ -83,7 +83,7 @@ module.exports = {
 };
 ```
 
-## vue cli2
+### vue cli2
 `build/webpack.prod.conf.js`
 ```javascript
 const ExtraJsfileWebpackPlugin = require('@vinsea/extra-jsfile-webpack-plugin');
@@ -97,7 +97,7 @@ webpackConfig.plugins.push(new ExtraJsfileWebpackPlugin({ 这里是参数 }));
 module.exports = webpackConfig;
 ```
 
-## vue cli3
+### vue cli3
 `vue.config.js`
 ```javascript
 const ExtraJsfileWebpackPlugin = require('@vinsea/extra-jsfile-webpack-plugin');
@@ -125,3 +125,7 @@ module.exports = {
 | `hash`           |  `{Boolean}`   |   `true`                 | 是否给生成的 js 文件添加版本标示 |
 | `pathOnly`       |  `{Boolean}`   |   `false`                | 是否只通过路径插入 js 文件，而不用 template |
 | `paths`          |  `{Array}`     |   `[]`                   | 自定义插入到 `index.html` 中的 `js` 文件的路径 |
+
+## TODO
+- 加单元测试
+- 兼容 `html-webpack-plugin` 4+
