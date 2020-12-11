@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const {log, info, done} = require('./utils/logger');
+const {log, info, done} = require('./lib/utils/logger');
 const pkg = require(path.join(process.cwd(), 'package.json'));
 const NormalModuleReplacementPlugin = require('webpack/lib/NormalModuleReplacementPlugin');
 

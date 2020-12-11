@@ -5,7 +5,7 @@
   </a>
 </div>
 
-[![npm][npm]][npm-url]
+![npm][npm-url]
 
 <h1 align="center">Extra-Jsfile-Webpack-Plugin</h1>
 
