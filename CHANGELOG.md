@@ -1,3 +1,17 @@
+## [1.1.2](https://github.com/Vinsea/extra-jsfile-webpack-plugin/compare/v1.1.0...v1.1.2) (2020-12-11)
+
+
+### Bug Fixes
+
+* 修复低级判断错误 ([474b981](https://github.com/Vinsea/extra-jsfile-webpack-plugin/commit/474b981cb55bff8c5b49d8479a549a75e89a1da8))
+
+
+### Features
+
+* 美化日志输出，依赖`html-webpack-plugin`版本号改为小于等于`3.2.0` ([d3da9dd](https://github.com/Vinsea/extra-jsfile-webpack-plugin/commit/d3da9dd2eb1825079bc57d0429d2d4d93d490509))
+
+
+
 # 1.1.0 (2020-12-10)
 
 
