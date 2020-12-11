@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const {log, info, done} = require('./utils/logger');
 const pkg = require(path.join(process.cwd(), 'package.json'));
 const NormalModuleReplacementPlugin = require('webpack/lib/NormalModuleReplacementPlugin');
 
@@ -28,7 +29,6 @@ class ExtraJsFileWebpackPlugin {
             componentEntry: path.join(process.cwd(), 'src/index.js')
         }
         this.options = Object.assign(defaultOptions, userOptions);
-        this._PLUGIN_NAME = 'ExtraJsFileWebpackPlugin';
     }
 
     /**
@@ -51,7 +51,7 @@ class ExtraJsFileWebpackPlugin {
                 new RegExp(this.options.componentEntry),
                 pathOutputFile,
             ).apply(compiler);
-            console.log(`[${this._PLUGIN_NAME}] 已生成 index-with-version.js 为最终入口文件：`, pathOutputFile)
+            info(`已生成 index-with-version.js 为最终入口文件： ${pathOutputFile}`)
             return;
         }
 
@@ -60,7 +60,7 @@ class ExtraJsFileWebpackPlugin {
             // html-webpack-plugin4.* 把钩子名改了，后续规划做兼容
             compilation.plugin('html-webpack-plugin-before-html-processing', (htmlPluginData, callback) => {
                 this.options.paths.forEach(pathItem => {
-                    console.log(`\n[${this._PLUGIN_NAME}] 插入文件：`, pathItem);
+                    log(`插入文件：${pathItem}`);
                     htmlPluginData.assets.js.unshift(pathItem);
                 });
                 if (this.options.pathOnly) {
@@ -102,8 +102,8 @@ class ExtraJsFileWebpackPlugin {
         const template = this.options.template || this.getDefaultTemplateContent();
         // 写入文件
         fs.writeFileSync(OUTPUT_PATH, template, 'utf8');
-        console.log(`\n[${this._PLUGIN_NAME}] 完成：`, OUTPUT_PATH);
-        // 添加到 html-webpack-plugin 渲染资源队列
+        done(`已添加到 html-webpack-plugin 资源队列 - ${OUTPUT_PATH}`);
+        // 添加到 html-webpack-plugin 资源队列
         htmlPluginData.assets.js.unshift('/' + fileName);
         // [2020-12-10] webpack4之前，为了返回promise，就需要执行callback触发一下resolve
         //              webpack4以后，可以直接用compilation.hooks[EventName].promise()返回promise
@@ -116,6 +116,7 @@ class ExtraJsFileWebpackPlugin {
      * @returns {String} 模板内容
      */
     getDefaultTemplateContent() {
+        log('生成默认js内容');
         const now = new Date();
         now.setHours(now.getHours() + 8);
         const current = JSON.stringify({
