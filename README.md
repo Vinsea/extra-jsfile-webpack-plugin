@@ -4,15 +4,17 @@
   </a>
 </div>
 
-![NPM version][https://img.shields.io/npm/v/@vinsea/extra-jsfile-webpack-plugin.svg?style=flat)](https://npmjs.org/package/@vinsea/extra-jsfile-webpack-plugin)]
+[![NPM version](https://img.shields.io/npm/v/@vinsea/extra-jsfile-webpack-plugin.svg?style=flat)](https://npmjs.org/package/@vinsea/extra-jsfile-webpack-plugin)
 
 <h2 align="center">Extra-Jsfile-Webpack-Plugin</h2>
 
-- 打包时候可以将的 `js` 文件加入到 [html-webpack-plugin](https://www.npmjs.com/package/html-webpack-plugin/v/3.2.0) 的资源队列中。 （会插入到 index.html）
-- 或者在导出的`index.js`中加入特定的 `js` 脚本
+主要功能：
+
+- 打包时候可以将额外的 `js` 文件加入到 [html-webpack-plugin](https://www.npmjs.com/package/html-webpack-plugin/v/3.2.0) 的资源队列中。 （会插入到 index.html）
+- `webpack`在`library`模式下打包的入口文件中(`entry`)加入指定的 `js` 脚本
 
 ## 示例
-[查看详细参数](#选项)
+详细参数请查看
 
 ### 默认情况
 ```js
@@ -59,6 +61,14 @@ new ExtraJsfileWebpackPlugin({
     <script src="/extra-js-file.js"></script>
     <script src="/js/app.fe6a0b5c.js"></script>
 </body>
+```
+
+### webpack打包成library时
+```js
+new ExtraJsfileWebpackPlugin({ 
+  isLibrary: true,
+  libraryEntry: '/your/path/to/lib/entry' // 默认是 src/index.js
+})
 ```
 
 ## 用法
@@ -115,8 +125,8 @@ module.exports = {
 
 |      选项名       |       类型      |            默认值         |            说明           |
 | :--------------: | :------------: | :----------------------: | :------------------------ |
-| `isComponent`    |  `{Boolean}`   |   `false`                | 是否是组件模式（打包入口是js） |
-| `componentEntry` |  `{string}`    |   `src/index.js`         | 组件模式打包入口js路径        |
+| `isLibrary`    |  `{Boolean}`   |   `false`                | 是否是库模式 [创建`libraries`时需要传该参数](https://v4.webpack.docschina.org/guides/author-libraries) |
+| `libraryEntry` |  `{string}`    |   `src/index.js`         | 库模式打包入口js路径        |
 | `filename`       |  `{String}`    |   `version`              | 通过下面的 template 参数生成的 js 文件的文件名 |
 | `template`       |  `{String}`    |   `undefined`            | 自定义插入到 `index.html` 中的 js 文件的内容 |
 | `name`           |  `{String}`    |`package.json`里的`name`   | 项目名 |

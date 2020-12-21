@@ -1,6 +1,6 @@
-const fs = require('fs');
+const fs = require('fs-extra');
 const path = require('path');
-const {log, info, done} = require('./lib/utils/logger');
+const {log, info, done, error} = require('./lib/utils/logger');
 const pkg = require(path.join(process.cwd(), 'package.json'));
 const NormalModuleReplacementPlugin = require('webpack/lib/NormalModuleReplacementPlugin');
 
@@ -17,8 +17,8 @@ class ExtraJsFileWebpackPlugin {
     constructor(options) {
         const userOptions = options || {};
         const defaultOptions = {
-            isComponent: false,
-            filename: 'version',
+            isLibrary: false,
+            filename: 'versions',
             name: pkg.name,
             version: pkg.version,
             author: pkg.author,
@@ -26,9 +26,13 @@ class ExtraJsFileWebpackPlugin {
             pathOnly: false,
             paths: [],
             template: '',
-            componentEntry: path.join(process.cwd(), 'src/index.js')
+            libraryEntry: 'src/index.js'
         }
         this.options = Object.assign(defaultOptions, userOptions);
+        // webpack配置输出的完整路径
+        this.webpackOutputPath = '';
+        // webpack打包library模式时的入口文件路径
+        this.libraryFinalEntry = '';
     }
 
     /**
@@ -37,25 +41,33 @@ class ExtraJsFileWebpackPlugin {
      * @returns {undefined}
      */
     apply(compiler) {
-        const pathOutputDir = compiler.options.output.path;
-        // 不存在就创建
-        if (!fs.existsSync(pathOutputDir)) {
-            fs.mkdirSync(pathOutputDir);
-        }
-
-        // ========================================== 组件模式
-        if (this.options.isComponent) {
-            const pathOutputFile = path.join(pathOutputDir, 'index-with-version.js');
-            this.replaceNormalModule(pathOutputFile);
-            new NormalModuleReplacementPlugin(
-                new RegExp(this.options.componentEntry),
-                pathOutputFile,
-            ).apply(compiler);
-            info(`已生成 index-with-version.js 为最终入口文件： ${pathOutputFile}`)
+        // ========================================== 库模式
+        if (this.options.isLibrary) {
+            const libraryDefaultEntry = path.join(process.cwd(), this.options.libraryEntry);
+            if (!fs.pathExistsSync(libraryDefaultEntry)) {
+                error(`入口文件不存在：${libraryDefaultEntry}\n请检查 libraryEntry 参数的值是否正确`)
+                return;
+            }
+            const LAST_INDEX_PATH = libraryDefaultEntry.lastIndexOf('/');
+            const OUTPUT_PATH = libraryDefaultEntry.substring(0, LAST_INDEX_PATH + 1);
+            // 防止在webpack构建过程中被强制终止导致该文件没被删除，通过文件名直观告诉开发者需要手动删除
+            const OUTPUT_FILENAME = 'this-file-should-be-deleted.js';
+            // 最终入口文件路径
+            this.libraryFinalEntry = path.join(OUTPUT_PATH, OUTPUT_FILENAME);
+            // 修改 OUTPUT_FILENAME 文件内容
+            this.replaceNormalModule(libraryDefaultEntry);
+            // 把打包的entry文件替换成 libraryFinalEntry
+            new NormalModuleReplacementPlugin(new RegExp(libraryDefaultEntry), this.libraryFinalEntry).apply(compiler);
+            info(`已修改 ${OUTPUT_FILENAME} 为最终入口文件 - ${this.libraryFinalEntry}`)
+            // 删除新的入口文件
+            compiler.plugin('done', () => {
+                fs.remove(this.libraryFinalEntry);
+            })
             return;
         }
 
         // ========================================== web项目模式
+        this.webpackOutputPath = compiler.options.output.path;
         compiler.plugin('compilation', (compilation) => {
             // html-webpack-plugin4.* 把钩子名改了，后续规划做兼容
             compilation.plugin('html-webpack-plugin-before-html-processing', (htmlPluginData, callback) => {
@@ -66,45 +78,47 @@ class ExtraJsFileWebpackPlugin {
                 if (this.options.pathOnly) {
                     return;
                 }
-                this.generateVersionFile(pathOutputDir, htmlPluginData, callback, !compilation.hooks);
+                this.addExtraFileToHtmlPlugin(htmlPluginData, callback, !compilation.hooks);
             });
         });
+
     }
 
     /**
-     * 组件模式下 this.options.componentEntry(默认是src/index.js) 
-     * 这个入口文件的内容头部增加 this.options.template 的内容
-     * @param {string} pathOutputFile 最终的入口文件
+     * 在 `entry` 文件的内容头部增加 this.options.template 的内容
+     * @param {string} entry 入口路径
      * @returns {undefined}
      */
-    replaceNormalModule(pathOutputFile) {
-        const entryContent = fs.readFileSync(this.options.componentEntry, 'utf8');
+    replaceNormalModule(entry) {
+        const entryContent = fs.readFileSync(entry, 'utf8');
         const template = this.options.template || this.getDefaultTemplateContent();
         const final = `${template}\n${entryContent}`;
-        fs.writeFileSync(pathOutputFile, final, 'utf8');
+        fs.writeFileSync(this.libraryFinalEntry, final, 'utf8');
     }
 
     /**
-     * 生成版本文件
-     * @param {string} pathOutputDir webpack输出的完整路径
+     * 1. 生成js文件，用于保存 this.options.template 的值
+     * 2. 加入到 html-webpack-plugin 资源队列
      * @param {Object} htmlPluginData htmlPluginData
      * @param {Function} callback 为了触发promise的resolve
      * @param {Boolean} isBeforeWebpack4 是否是webpack4以前的版本
      * @returns {undefined}
      */
-    generateVersionFile(pathOutputDir, htmlPluginData, callback, isBeforeWebpack4) {
-        const { hash, filename } = this.options;
+    addExtraFileToHtmlPlugin(htmlPluginData, callback, isBeforeWebpack4) {
+        const { hash, filename, template } = this.options;
         // 获取文件名
         const fileName = hash ? `${filename}.${new Date().getTime()}.js` : `${filename}.js`;
         // 写入文件路径
-        const OUTPUT_PATH = path.join(pathOutputDir, fileName);
+        const OUTPUT_PATH = path.join(this.webpackOutputPath, fileName);
         // 没有传模板就用自带的
-        const template = this.options.template || this.getDefaultTemplateContent();
+        const templateContent = template || this.getDefaultTemplateContent();
         // 写入文件
-        fs.writeFileSync(OUTPUT_PATH, template, 'utf8');
-        done(`已添加到 html-webpack-plugin 资源队列 - ${OUTPUT_PATH}`);
+        fs.ensureDirSync(this.webpackOutputPath)
+        fs.writeFileSync(OUTPUT_PATH, templateContent, 'utf8');
         // 添加到 html-webpack-plugin 资源队列
         htmlPluginData.assets.js.unshift('/' + fileName);
+        done(`已添加到 html-webpack-plugin 资源队列 - ${OUTPUT_PATH}`);
+
         // [2020-12-10] webpack4之前，为了返回promise，就需要执行callback触发一下resolve
         //              webpack4以后，可以直接用compilation.hooks[EventName].promise()返回promise
         if (isBeforeWebpack4) {
@@ -117,16 +131,13 @@ class ExtraJsFileWebpackPlugin {
      */
     getDefaultTemplateContent() {
         log('生成默认js内容');
-        const now = new Date();
-        now.setHours(now.getHours() + 8);
         const current = JSON.stringify({
             name: this.options.name,
             version: this.options.version,
-            buildDate: now,
+            buildDate: new Date(),
             author: this.options.author,
             dependencies: pkg.dependencies,
         })
-        // TODO window上的 key 可以从options里取，并做校验
         return `/* Automatically generated by 'extra-jsfile-webpack-plugin' */
 window.__EXTRA_JSFILE_WEBPACK_PLUGIN__ = ${current}
 `;
