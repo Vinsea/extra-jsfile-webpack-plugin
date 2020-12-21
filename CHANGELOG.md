@@ -1,3 +1,18 @@
+# [1.2.0](https://github.com/Vinsea/extra-jsfile-webpack-plugin/compare/v1.1.2...v1.2.0) (2020-12-21)
+
+
+### Bug Fixes
+
+* 修复在lib模式下 src/index.js 文件中的相对路径会因为新入口文件的移动而报错 ([bf11870](https://github.com/Vinsea/extra-jsfile-webpack-plugin/commit/bf11870d9de86a1f6d34fe4129ab8d0186e3c6dd))
+
+
+### Features
+
+* 升级版本 ([434b824](https://github.com/Vinsea/extra-jsfile-webpack-plugin/commit/434b8241b3f00a175e77d534914d87513e71b484))
+* 升级版本 ([736a5e7](https://github.com/Vinsea/extra-jsfile-webpack-plugin/commit/736a5e7d38c8ad8e11db25c6b9b46ed8447a9922))
+
+
+
 ## [1.1.2](https://github.com/Vinsea/extra-jsfile-webpack-plugin/compare/v1.1.0...v1.1.2) (2020-12-11)
 
 
