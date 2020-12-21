@@ -1,0 +1,7 @@
+language: node_js
+node_js:
+  - stable
+install:
+  - travis_retry npm install --ignore-scripts
+script:
+  - travis_retry npm test
