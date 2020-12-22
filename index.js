@@ -2,7 +2,6 @@ const fs = require('fs-extra');
 const path = require('path');
 const {log, info, done, error} = require('./lib/utils/logger');
 const pkg = require(path.join(process.cwd(), 'package.json'));
-const NormalModuleReplacementPlugin = require('webpack/lib/NormalModuleReplacementPlugin');
 
 /**
  * @author Vinsea
@@ -29,10 +28,6 @@ class ExtraJsFileWebpackPlugin {
             libraryEntry: 'src/index.js'
         }
         this.options = Object.assign(defaultOptions, userOptions);
-        // webpack配置输出的完整路径
-        this.webpackOutputPath = '';
-        // webpack打包library模式时的入口文件路径
-        this.libraryFinalEntry = '';
     }
 
     /**
@@ -53,77 +48,94 @@ class ExtraJsFileWebpackPlugin {
             // 防止在webpack构建过程中被强制终止导致该文件没被删除，通过文件名直观告诉开发者需要手动删除
             const OUTPUT_FILENAME = 'this-file-should-be-deleted.js';
             // 最终入口文件路径
-            this.libraryFinalEntry = path.join(OUTPUT_PATH, OUTPUT_FILENAME);
+            const libraryFinalEntry = path.join(OUTPUT_PATH, OUTPUT_FILENAME);
             // 修改 OUTPUT_FILENAME 文件内容
-            this.replaceNormalModule(libraryDefaultEntry);
+            this.replaceNormalModule(libraryDefaultEntry, libraryFinalEntry);
             // 把打包的entry文件替换成 libraryFinalEntry
-            new NormalModuleReplacementPlugin(new RegExp(libraryDefaultEntry), this.libraryFinalEntry).apply(compiler);
-            info(`已修改 ${OUTPUT_FILENAME} 为最终入口文件 - ${this.libraryFinalEntry}`)
+            const NormalModuleReplacementPlugin = require('webpack/lib/NormalModuleReplacementPlugin');
+            new NormalModuleReplacementPlugin(new RegExp(libraryDefaultEntry), libraryFinalEntry).apply(compiler);
+            info(`已修改 ${OUTPUT_FILENAME} 为最终入口文件 - ${libraryFinalEntry}`)
+
             // 删除新的入口文件
-            compiler.plugin('done', () => {
-                fs.remove(this.libraryFinalEntry);
-            })
+            const removeFinalEntry = () => {
+                fs.remove(libraryFinalEntry);
+            }
+            
+            if (compiler.hooks) {
+                compiler.hooks.done.tap(this.constructor.name, removeFinalEntry)
+            }else{
+                compiler.plugin('done', removeFinalEntry)
+            }
             return;
         }
 
         // ========================================== web项目模式
-        this.webpackOutputPath = compiler.options.output.path;
-        compiler.plugin('compilation', (compilation) => {
-            // html-webpack-plugin4.* 把钩子名改了，后续规划做兼容
-            compilation.plugin('html-webpack-plugin-before-html-processing', (htmlPluginData, callback) => {
-                this.options.paths.forEach(pathItem => {
-                    log(`插入文件：${pathItem}`);
-                    htmlPluginData.assets.js.unshift(pathItem);
-                });
-                if (this.options.pathOnly) {
-                    return;
-                }
-                this.addExtraFileToHtmlPlugin(htmlPluginData, callback, !compilation.hooks);
+        const htmlPluginCb = (htmlPluginData, callback) => {
+            this.options.paths.forEach(pathItem => {
+                log(`插入文件：${pathItem}`);
+                htmlPluginData.assets.js.unshift(pathItem);
             });
-        });
+            if (!this.options.pathOnly) {
+                this.addExtraFileToHtmlPlugin(htmlPluginData, compiler.options.output.path);
+                // webpack4之前：为了返回promise，就需要执行callback触发一下resolve
+                // webpack4以后：可以直接用 compilation.hooks[EventName].promise()返回 promise
+                //              这时候 callback 会返回 undefined
+                if (!compiler.hooks) {
+                    callback(null, htmlPluginData);
+                }
+            }
+        }
 
+        if (compiler.hooks) {
+            // webpack 4
+            compiler.hooks.compilation.tap('compilation', (compilation) => {
+                compilation.hooks.htmlWebpackPluginBeforeHtmlProcessing.tap(
+                    this.constructor.name, htmlPluginCb
+                  )
+            })
+        }else{
+            // webpack < 4
+            compiler.plugin('compilation', (compilation) => {
+                // https://github.com/jantimon/html-webpack-plugin/tree/v3.2.0#events
+                compilation.plugin('html-webpack-plugin-before-html-processing', htmlPluginCb);
+            });
+        }
     }
 
     /**
      * 在 `entry` 文件的内容头部增加 this.options.template 的内容
      * @param {string} entry 入口路径
+     * @param {string} libraryFinalEntry 最终入口路径
      * @returns {undefined}
      */
-    replaceNormalModule(entry) {
+    replaceNormalModule(entry, libraryFinalEntry) {
         const entryContent = fs.readFileSync(entry, 'utf8');
         const template = this.options.template || this.getDefaultTemplateContent();
         const final = `${template}\n${entryContent}`;
-        fs.writeFileSync(this.libraryFinalEntry, final, 'utf8');
+        fs.writeFileSync(libraryFinalEntry, final, 'utf8');
     }
 
     /**
      * 1. 生成js文件，用于保存 this.options.template 的值
      * 2. 加入到 html-webpack-plugin 资源队列
      * @param {Object} htmlPluginData htmlPluginData
-     * @param {Function} callback 为了触发promise的resolve
-     * @param {Boolean} isBeforeWebpack4 是否是webpack4以前的版本
+     * @param {string} webpackOutputPath webpackOutputPath
      * @returns {undefined}
      */
-    addExtraFileToHtmlPlugin(htmlPluginData, callback, isBeforeWebpack4) {
+    addExtraFileToHtmlPlugin(htmlPluginData, webpackOutputPath) {
         const { hash, filename, template } = this.options;
         // 获取文件名
         const fileName = hash ? `${filename}.${new Date().getTime()}.js` : `${filename}.js`;
         // 写入文件路径
-        const OUTPUT_PATH = path.join(this.webpackOutputPath, fileName);
+        const OUTPUT_PATH = path.join(webpackOutputPath, fileName);
         // 没有传模板就用自带的
         const templateContent = template || this.getDefaultTemplateContent();
         // 写入文件
-        fs.ensureDirSync(this.webpackOutputPath)
+        fs.ensureDirSync(webpackOutputPath)
         fs.writeFileSync(OUTPUT_PATH, templateContent, 'utf8');
         // 添加到 html-webpack-plugin 资源队列
         htmlPluginData.assets.js.unshift('/' + fileName);
         done(`已添加到 html-webpack-plugin 资源队列 - ${OUTPUT_PATH}`);
-
-        // [2020-12-10] webpack4之前，为了返回promise，就需要执行callback触发一下resolve
-        //              webpack4以后，可以直接用compilation.hooks[EventName].promise()返回promise
-        if (isBeforeWebpack4) {
-            callback(null, htmlPluginData);
-        }
     }
 
     /**
